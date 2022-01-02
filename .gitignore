@@ -4,7 +4,9 @@
 .vscode
 .code
 vendor
+.env
 
 # Project-specific
 config/*.json
 !config/*.example.json
+!*.example.env

@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  bot:
+    build:
+      context: ./
+      dockerfile: ./docker/bot/Dockerfile
+    image: sound-seeker-bot:latest
+    container_name: sound-bot
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - internal
+
+  db:
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+    image: sound-seeker-db:latest
+    container_name: sound-bot-db
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  db-data:
+
+networks:
+  internal:
+    driver: bridge
