@@ -1,0 +1,10 @@
+# General
+.DS_Store
+.idea
+.vscode
+.code
+vendor
+
+# Project-specific
+config/*.json
+!config/*.example.json
