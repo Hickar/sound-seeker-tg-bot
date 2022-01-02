@@ -20,5 +20,7 @@ func main() {
 		log.Fatalf("unable to parse configuration file at %s: %s", *configPath, err.Error())
 	}
 
-	bot.NewBot(*conf)
+	if err := bot.Start(*conf); err != nil {
+		log.Fatalln(err)
+	}
 }

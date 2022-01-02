@@ -1,0 +1,15 @@
+{
+  "bot": {
+    "token": "telegram_bot_token",
+    "debug": true,
+    "timeout": 60,
+    "concurrent": true,
+    "upstream_channel": "@your_channel_name"
+  },
+  "database": {
+    "host": "localhost:5432",
+    "user": "user",
+    "password": "password",
+    "name": "db_name"
+  }
+}
