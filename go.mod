@@ -1,6 +1,13 @@
-module sound-seeker-bot
+module github.com/Hickar/sound-seeker-bot
 
-go 1.18
+go 1.17
+
+//require (
+//	github.com/pkg/errors v0.9.1 // indirect
+//	gopkg.in/tucnak/telebot.v3 v2.5.0 // indirect
+//)
+
+//replace gopkg.in/tucnak/telebot.v3 => ./../../../github.com/Hickar/telebot
 
 require (
 	github.com/pkg/errors v0.9.1 // indirect

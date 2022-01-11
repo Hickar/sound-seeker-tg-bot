@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"sound-seeker-bot/internal/bot"
-	"sound-seeker-bot/internal/config"
+	"github.com/Hickar/sound-seeker-bot/internal/bot"
+	"github.com/Hickar/sound-seeker-bot/internal/config"
 )
 
 var (

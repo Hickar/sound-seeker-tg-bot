@@ -3,8 +3,8 @@ package bot
 import (
 	"time"
 
+	"github.com/Hickar/sound-seeker-bot/internal/config"
 	"gopkg.in/tucnak/telebot.v3"
-	"sound-seeker-bot/internal/config"
 )
 
 type App struct {
