@@ -1,34 +1,35 @@
 package controller
 
 import (
+	"fmt"
+
+	"github.com/Hickar/sound-seeker-bot/internal/middleware/scene"
 	"gopkg.in/tucnak/telebot.v3"
 )
 
-func NewMainRouter(bot *telebot.Bot) error {
-	commands := []telebot.Command{
-		{
-			Text:        "/newpost",
-			Description: "Создать новый пост в канале",
-		},
-		{
-			Text:        "/help",
-			Description: "Справка по боту",
-		},
-		{
-			Text:        "/admin",
-			Description: "Перейти в админский режим",
-		},
-	}
+func NewMainRouter(bot *scene.Scene) error {
+	bot.HandleStart(ShowMainMenu)
 
-	//mainScene := telebot.NewScene("main")
+	bot.Handle("Создать пост", MakeNewPost)
+	bot.Handle("Помощь", ShowHelp)
+	bot.Handle("Режим админа", EnterAdminMode)
 
-	bot.Handle("/newpost", MakeNewPost)
-	bot.Handle("/help", ShowHelp)
-	bot.Handle("/admin", EnterAdminMode)
+	bot.Handle(telebot.OnText, func(ctx telebot.Context) error {
+		return ctx.Send("main")
+	})
 
-	if err := bot.SetCommands(commands); err != nil {
-		return err
-	}
+	return nil
+}
+
+func NewPostRouter(bot *scene.Scene) error {
+	bot.Handle(telebot.OnText, func(ctx telebot.Context) error {
+		msg := fmt.Sprintf("[post]: %s", ctx.Message().Text)
+		return ctx.Send(msg)
+	})
+
+	bot.HandleStart(func (ctx telebot.Context) error {
+		return ctx.Send("Post scene start")
+	})
 
 	return nil
 }

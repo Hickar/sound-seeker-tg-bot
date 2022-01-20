@@ -1,4 +1,4 @@
-package middleware
+package session
 
 import (
 	"sync"
@@ -6,13 +6,7 @@ import (
 	"gopkg.in/tucnak/telebot.v3"
 )
 
-const SessionKey = "session"
-
-type SessionStore interface {
-	Get(int64) (*Session, error)
-	Set(int64, *Session)
-	Delete(int64)
-}
+const sessionKey = "session"
 
 type Session struct {
 	sync.RWMutex
@@ -26,12 +20,15 @@ func NewSession() *Session {
 	}
 }
 
-func (s *Session) Get(key string) (interface{}, bool) {
+func (s *Session) Get(key string) interface{} {
 	s.RLock()
 	defer s.RUnlock()
 	value, ok := s.store[key]
+	if !ok {
+		return nil
+	}
 
-	return value, ok
+	return value
 }
 
 func (s *Session) Set(key string, value interface{}) {
@@ -51,17 +48,17 @@ func (s *Session) Delete(key string) {
 	delete(s.store, key)
 }
 
-func SessionMiddleware(store SessionStore) telebot.MiddlewareFunc {
+func Middleware(store SessionStore) telebot.MiddlewareFunc {
 	return func(next telebot.HandlerFunc) telebot.HandlerFunc {
 		return func(ctx telebot.Context) error {
 			sessionId := ctx.Message().Sender.ID
 
-			session, err := store.Get(sessionId)
-			if err != nil || session == nil {
+			session := store.Get(sessionId)
+			if session == nil {
 				session = NewSession()
 			}
 
-			ctx.Set(SessionKey, session)
+			ctx.Set(sessionKey, session)
 			if err := next(ctx); err != nil {
 				return err
 			}
@@ -70,4 +67,13 @@ func SessionMiddleware(store SessionStore) telebot.MiddlewareFunc {
 			return nil
 		}
 	}
+}
+
+func GetSession(ctx telebot.Context) *Session {
+	session, ok := ctx.Get(sessionKey).(*Session)
+	if session == nil || !ok {
+		return NewSession()
+	}
+
+	return session
 }
