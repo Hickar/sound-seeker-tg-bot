@@ -1,14 +1,18 @@
 package bot
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/Hickar/sound-seeker-bot/internal/config"
 	"github.com/Hickar/sound-seeker-bot/internal/controller"
 	"github.com/Hickar/sound-seeker-bot/internal/repository"
+	localDatasource "github.com/Hickar/sound-seeker-bot/internal/repository/local_datasource"
+	remoteDatasource "github.com/Hickar/sound-seeker-bot/internal/repository/remote_datasource"
 	"github.com/Hickar/sound-seeker-bot/internal/usecase"
 	"github.com/Hickar/sound-seeker-bot/pkg/middleware/scene"
 	"github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
+	"github.com/Hickar/sound-seeker-bot/pkg/postgres"
 	"github.com/go-redis/redis/v8"
 	"gopkg.in/tucnak/telebot.v3"
 )
@@ -59,12 +63,26 @@ func Start(conf config.Config) error {
 	// Little hack to make bot pass updates of "text" type to scenes underneath :P
 	bot.Handle(telebot.OnText, func(context telebot.Context) error { return nil })
 
+	// HTTP/DB clients, repositories
+	httpClient := http.Client{}
+	db, err := postgres.New(conf.Db)
+	if err != nil {
+		return err
+	}
+	sqlDb, _ := db.DB()
+	defer sqlDb.Close()
+
+	albumRepo := repository.NewAlbumRepo(
+		localDatasource.New(db),
+		remoteDatasource.NewDiscogsDatasource(&httpClient),
+		remoteDatasource.NewSpotifyDatasource(&httpClient),
+	)
+
+	// Scenes, controllers and usecases
 	mainController := controller.NewMainController(stage)
 	controller.NewMainRouter(mainScene, mainController)
 
-	albumRepo := repository.AlbumRepository{}
-
-	postUsecase := usecase.NewPostUsecase(&albumRepo)
+	postUsecase := usecase.NewPostUsecase(albumRepo)
 	postController := controller.NewChannelPostController(postUsecase, stage)
 	controller.NewPostRouter(postScene, postController)
 

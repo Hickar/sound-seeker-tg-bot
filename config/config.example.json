@@ -23,5 +23,9 @@
     "oauth_token": "oauthtoken",
     "oauth_secret": "oauthsecret",
     "verify_key": "verifykey"
+  },
+  "spotify": {
+    "client_id": "clientId",
+    "client_secret": "clientSecret"
   }
 }

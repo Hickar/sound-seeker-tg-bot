@@ -10,6 +10,7 @@ type Config struct {
 	Db      DatabaseConfig `json:"database,db"`
 	Redis   RedisConfig    `json:"redis"`
 	Discogs DiscogsConfig  `json:"discogs"`
+	Spotify SpotifyConfig  `json:"spotify"`
 }
 
 type BotConfig struct {
@@ -39,6 +40,11 @@ type DiscogsConfig struct {
 	OAuthToken    string `json:"oauth_token"`
 	OAuthSecret   string `json:"oauth_secret"`
 	VerifyKey     string `json:"verify_key"`
+}
+
+type SpotifyConfig struct {
+	ClientId     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
 }
 
 func NewConfig(filepath string) (*Config, error) {

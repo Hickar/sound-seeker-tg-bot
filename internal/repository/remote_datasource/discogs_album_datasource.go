@@ -10,6 +10,10 @@ type DiscogsAlbumDatasource struct {
 	client *http.Client
 }
 
+func NewDiscogsDatasource(client *http.Client) *DiscogsAlbumDatasource {
+	return &DiscogsAlbumDatasource{client: client}
+}
+
 func (ds *DiscogsAlbumDatasource) GetByQuery(string) ([]entity.Album, error) {
 	return []entity.Album{}, nil
 }
