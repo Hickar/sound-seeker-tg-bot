@@ -16,5 +16,12 @@
     "host": "localhost:6379",
     "password": "password",
     "db": 0
+  },
+  "discogs": {
+    "consumer_key": "cOnSuMeRkEy",
+    "consumer_token": "cOnSuMeRtOkEn",
+    "oauth_token": "oauthtoken",
+    "oauth_secret": "oauthsecret",
+    "verify_key": "verifykey"
   }
 }

@@ -1,4 +1,4 @@
-package session_store
+package session
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Hickar/sound-seeker-bot/internal/config"
-	"github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -15,15 +13,9 @@ type RedisSessionStore struct {
 	client redis.Client
 }
 
-func NewSessionStore(conf config.RedisConfig) (*RedisSessionStore, error) {
-	clientOpts := redis.Options{
-		Addr:     conf.Host,
-		Password: conf.Password,
-		DB:       conf.Db,
-	}
-
+func NewRedisSessionStore(opts redis.Options) (*RedisSessionStore, error) {
 	ctx := context.Background()
-	client := redis.NewClient(&clientOpts)
+	client := redis.NewClient(&opts)
 
 	if _, err := client.Ping(ctx).Result(); err != nil {
 		return nil, fmt.Errorf("unable to connect to redis: %s", err.Error())
@@ -32,7 +24,7 @@ func NewSessionStore(conf config.RedisConfig) (*RedisSessionStore, error) {
 	return &RedisSessionStore{client: *client}, nil
 }
 
-func (st *RedisSessionStore) Get(key int64) *session.Session {
+func (st *RedisSessionStore) Get(key int64) *Session {
 	ctx := context.Background()
 
 	result, err := st.client.Get(ctx, strconv.FormatInt(key, 10)).Result()
@@ -40,7 +32,7 @@ func (st *RedisSessionStore) Get(key int64) *session.Session {
 		return nil
 	}
 
-	var storedSession session.Session
+	var storedSession Session
 	if err := json.Unmarshal([]byte(result), &storedSession); err != nil {
 		return nil
 	}
@@ -48,7 +40,7 @@ func (st *RedisSessionStore) Get(key int64) *session.Session {
 	return &storedSession
 }
 
-func (st *RedisSessionStore) Set(key int64, ssn *session.Session) {
+func (st *RedisSessionStore) Set(key int64, ssn *Session) {
 	ctx := context.Background()
 
 	raw, err := json.Marshal(&ssn)
@@ -63,4 +55,8 @@ func (st *RedisSessionStore) Delete(key int64) {
 	ctx := context.Background()
 
 	st.client.Del(ctx, strconv.FormatInt(key, 10))
+}
+
+func (st *RedisSessionStore) Stop() error {
+	return st.client.Close()
 }

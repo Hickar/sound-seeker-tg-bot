@@ -5,10 +5,11 @@ import (
 
 	"github.com/Hickar/sound-seeker-bot/internal/config"
 	"github.com/Hickar/sound-seeker-bot/internal/controller"
-	ssnStore "github.com/Hickar/sound-seeker-bot/internal/session_store"
+	"github.com/Hickar/sound-seeker-bot/internal/repository"
 	"github.com/Hickar/sound-seeker-bot/internal/usecase"
 	"github.com/Hickar/sound-seeker-bot/pkg/middleware/scene"
 	"github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
+	"github.com/go-redis/redis/v8"
 	"gopkg.in/tucnak/telebot.v3"
 )
 
@@ -31,10 +32,15 @@ func Start(conf config.Config) error {
 		return err
 	}
 
-	sessionStore, err := ssnStore.NewSessionStore(conf.Redis)
+	sessionStore, err := session.NewRedisSessionStore(redis.Options{
+		Addr:     conf.Redis.Host,
+		Password: conf.Redis.Password,
+		DB:       conf.Redis.Db,
+	})
 	if err != nil {
 		return err
 	}
+	defer sessionStore.Stop()
 
 	sessionMiddleware := session.Middleware(sessionStore)
 
@@ -56,7 +62,10 @@ func Start(conf config.Config) error {
 	mainController := controller.NewMainController(stage)
 	controller.NewMainRouter(mainScene, mainController)
 
-	postController := controller.NewChannelPostController(&usecase.PostUsecase{}, stage)
+	albumRepo := repository.AlbumRepository{}
+
+	postUsecase := usecase.NewPostUsecase(&albumRepo)
+	postController := controller.NewChannelPostController(postUsecase, stage)
 	controller.NewPostRouter(postScene, postController)
 
 	bot.Start()

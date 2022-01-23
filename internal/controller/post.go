@@ -14,8 +14,10 @@ const (
 	PostReturnToMainCommand         = "❌ Вернуться в главное меню"
 	PostEnterContentManuallyCommand = "✏️ Ввести текст поста вручную"
 
-	PostArtistReply        = "Введи название исполнителя и альбома, либо скинь ссылку на альбом в спотифае"
-	PostEnterManuallyReply = "Введи текст поста. (можно даже приложить картинки!)"
+	PostArtistReply            = "Введи название исполнителя и альбома, либо скинь ссылку на альбом в спотифае"
+	PostEnterManuallyReply     = "Введи текст поста. (можно даже приложить картинки!)"
+	PostInvalidSpotifyURLReply = "Некорректная ссылка на альбом в спотифае!"
+	PostNotFoundReply          = "По данному запросу ничего не было найдено"
 
 	scenePostStateKey                  = "post_state"
 	scenePostStateEnterContentManually = "post_state_enter_manually"
@@ -58,11 +60,22 @@ func (pc *PostController) HandlePostAlbumInfo(ctx telebot.Context) error {
 			return errors.New("post scene state is not set")
 		}
 
+		msg := ctx.Message().Text
+
 		switch ssnState {
 		case scenePostStateWaitingAlbumInfo:
+			_, err := pc.useCase.FindAlbum(msg)
+			if err != nil {
+				if errors.Is(err, usecase.ErrInvalidSpotifyURL) {
+					return ctx.Send(PostInvalidSpotifyURLReply)
+				} else {
+					return ctx.Send(PostNotFoundReply)
+				}
+			}
 		case scenePostStateWaitingDescription:
+			return ctx.Send("waiting description")
 		case scenePostStateEnterContentManually:
-
+			return ctx.Send("entering post content manually")
 		}
 	}
 
