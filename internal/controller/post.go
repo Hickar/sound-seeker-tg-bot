@@ -25,10 +25,11 @@ const (
 
 type PostController struct {
 	useCase *usecase.PostUsecase
+	stage   *scene.Stage
 }
 
-func NewChannelPostController(usecase *usecase.PostUsecase) *PostController {
-	return &PostController{usecase}
+func NewChannelPostController(useCase *usecase.PostUsecase, stage *scene.Stage) *PostController {
+	return &PostController{useCase: useCase, stage: stage}
 }
 
 func (pc *PostController) OnPostCreationStart(ctx telebot.Context) error {
@@ -84,5 +85,5 @@ func (pc *PostController) EnterPostContentManually(ctx telebot.Context) error {
 
 func (pc *PostController) ExitToMainMenu(ctx telebot.Context) error {
 	session.GetSession(ctx).Delete(scenePostStateKey)
-	return scene.GetScene(ctx).EnterScene(ctx, SceneMainName)
+	return pc.stage.EnterScene(ctx, SceneMainName)
 }

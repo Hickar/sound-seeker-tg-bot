@@ -10,20 +10,28 @@ const sessionKey = "session"
 
 type Session struct {
 	sync.RWMutex
-	store   map[string]interface{}
+	Store map[string]interface{}
 }
 
 func NewSession() *Session {
 	return &Session{
 		RWMutex: sync.RWMutex{},
-		store: make(map[string]interface{}),
+		Store:   make(map[string]interface{}),
+	}
+
+}
+
+func NewSessionWithStore(store map[string]interface{}) *Session {
+	return &Session{
+		RWMutex: sync.RWMutex{},
+		Store:   store,
 	}
 }
 
 func (s *Session) Get(key string) interface{} {
 	s.RLock()
 	defer s.RUnlock()
-	value, ok := s.store[key]
+	value, ok := s.Store[key]
 	if !ok {
 		return nil
 	}
@@ -35,17 +43,17 @@ func (s *Session) Set(key string, value interface{}) {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.store == nil {
-		s.store = make(map[string]interface{})
+	if s.Store == nil {
+		s.Store = make(map[string]interface{})
 	}
 
-	s.store[key] = value
+	s.Store[key] = value
 }
 
 func (s *Session) Delete(key string) {
 	s.Lock()
 	defer s.Unlock()
-	delete(s.store, key)
+	delete(s.Store, key)
 }
 
 func Middleware(store SessionStore) telebot.MiddlewareFunc {

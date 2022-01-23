@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	"github.com/Hickar/sound-seeker-bot/internal/config"
-	sessionMiddleware "github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
 	"gopkg.in/tucnak/telebot.v3"
 )
 
 type Scene struct {
-	Name  string
-	Stage *Stage
+	Name         string
+	Stage        *Stage
 	startHandler telebot.HandlerFunc
 	*telebot.Bot
 }
@@ -39,35 +38,6 @@ func newDefaultScene(stage *Stage) *Scene {
 	return &Scene{Name: defaultScene, Stage: stage}
 }
 
-func GetScene(ctx telebot.Context) *Scene {
-	session := sessionMiddleware.GetSession(ctx)
-	scene, ok := session.Get(sceneSessionKey).(*Scene)
-	if !ok {
-		return nil
-	}
-
-	return scene
-}
-
-func (sc *Scene) EnterScene(ctx telebot.Context, sceneName string) error {
-	session := sessionMiddleware.GetSession(ctx)
-	newScene, ok := sc.Stage.Scenes[sceneName]
-	if !ok {
-		return fmt.Errorf("no scene with name \"%s\"", sceneName)
-	}
-
-	session.Set(sceneSessionKey, newScene)
-	if newScene.startHandler != nil {
-		return newScene.startHandler(ctx)
-	}
-	return nil
-}
-
 func (sc *Scene) HandleStart(handler telebot.HandlerFunc) {
 	sc.startHandler = handler
-}
-
-func SetScene(ctx telebot.Context, scene *Scene) {
-	session := sessionMiddleware.GetSession(ctx)
-	session.Set(sceneSessionKey, scene)
 }

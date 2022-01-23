@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	Bot BotConfig      `json:"bot"`
-	Db  DatabaseConfig `json:"database,db"`
+	Bot   BotConfig      `json:"bot"`
+	Db    DatabaseConfig `json:"database,db"`
+	Redis RedisConfig    `json:"redis"`
 }
 
 type BotConfig struct {
@@ -23,6 +24,12 @@ type DatabaseConfig struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Name     string `json:"name"`
+}
+
+type RedisConfig struct {
+	Host     string `json:"host"`
+	Password string `json:"password"`
+	Db       int    `json:"db"`
 }
 
 func NewConfig(filepath string) (*Config, error) {

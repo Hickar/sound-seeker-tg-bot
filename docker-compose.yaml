@@ -29,6 +29,18 @@ services:
       - db-data:/var/lib/postgresql/data
     restart: always
 
+  redis:
+    image: bitnami/redis:latest
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/bitnami/redis/data
+    restart: always
+    networks:
+      - internal
+
 volumes:
   db-data:
 

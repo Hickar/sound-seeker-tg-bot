@@ -11,12 +11,20 @@ const (
 	MainEnterAdminCommand = "🔑 Режим админа"
 	MainShowHelpCommand   = "📖 Помощь"
 
-	MainStartReply = "Главное меню"
+	MainStartReply      = "Главное меню"
 	MainEnterAdminReply = "Администраторский режим в процессе разработки..."
-	MainShowHelpReply = "Супер-бот, созданный для обработки постов, предложенных пользователями, и для администрирования канала \"Sonus Emporium\""
+	MainShowHelpReply   = "Супер-бот, созданный для обработки постов, предложенных пользователями, и для администрирования канала \"Sonus Emporium\""
 )
 
-func ShowMainMenu(ctx telebot.Context) error {
+type MainController struct {
+	stage *scene.Stage
+}
+
+func NewMainController(stage *scene.Stage) *MainController {
+	return &MainController{stage: stage}
+}
+
+func (mc *MainController) ShowMainMenu(ctx telebot.Context) error {
 	var (
 		menu              = telebot.ReplyMarkup{ResizeKeyboard: true, ForceReply: true}
 		createPostBtn     = menu.Text(MainNewPostCommand)
@@ -33,14 +41,14 @@ func ShowMainMenu(ctx telebot.Context) error {
 	return ctx.Send(MainStartReply, &menu)
 }
 
-func MakeNewPost(ctx telebot.Context) error {
-	return scene.GetScene(ctx).EnterScene(ctx, ScenePostName)
+func (mc *MainController) MakeNewPost(ctx telebot.Context) error {
+	return mc.stage.EnterScene(ctx, ScenePostName)
 }
 
-func EnterAdminMode(ctx telebot.Context) error {
+func (mc *MainController) EnterAdminMode(ctx telebot.Context) error {
 	return ctx.Send(MainEnterAdminReply)
 }
 
-func ShowHelp(ctx telebot.Context) error {
+func (mc *MainController) ShowHelp(ctx telebot.Context) error {
 	return ctx.Send(MainShowHelpReply)
 }

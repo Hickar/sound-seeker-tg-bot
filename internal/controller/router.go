@@ -5,13 +5,12 @@ import (
 	"gopkg.in/tucnak/telebot.v3"
 )
 
-func NewMainRouter(bot *scene.Scene) {
-	bot.HandleStart(ShowMainMenu)
-
-	bot.Handle(MainNewPostCommand, MakeNewPost)
-	bot.Handle(MainShowHelpCommand, ShowHelp)
-	bot.Handle(MainEnterAdminCommand, EnterAdminMode)
-	bot.Handle(telebot.OnText, ShowMainMenu)
+func NewMainRouter(bot *scene.Scene, controller *MainController) {
+	bot.HandleStart(controller.ShowMainMenu)
+	bot.Handle(MainNewPostCommand, controller.MakeNewPost)
+	bot.Handle(MainShowHelpCommand, controller.ShowHelp)
+	bot.Handle(MainEnterAdminCommand, controller.EnterAdminMode)
+	bot.Handle(telebot.OnText, controller.ShowMainMenu)
 }
 
 func NewPostRouter(bot *scene.Scene, controller *PostController) {
