@@ -1,8 +1,6 @@
 package scene
 
 import (
-	"fmt"
-
 	"gopkg.in/tucnak/telebot.v3"
 )
 
@@ -40,7 +38,6 @@ func Middleware(stage *Stage) telebot.MiddlewareFunc {
 				return next(ctx)
 			}
 
-			fmt.Printf("scene: %s\n", currentScene.Name)
 			currentScene.ProcessUpdate(ctx.Update())
 
 			return nil

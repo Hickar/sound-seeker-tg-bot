@@ -1,33 +1,88 @@
 package controller
 
 import (
+	"errors"
+
 	"github.com/Hickar/sound-seeker-bot/internal/usecase"
+	"github.com/Hickar/sound-seeker-bot/pkg/middleware/scene"
+	"github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
 	"gopkg.in/tucnak/telebot.v3"
 )
 
-const ScenePost = "post"
+const (
+	ScenePostName                   = "post"
+	PostReturnToMainCommand         = "❌ Вернуться в главное меню"
+	PostEnterContentManuallyCommand = "✏️ Ввести текст поста вручную"
+
+	PostArtistReply        = "Введи название исполнителя и альбома, либо скинь ссылку на альбом в спотифае"
+	PostEnterManuallyReply = "Введи текст поста. (можно даже приложить картинки!)"
+
+	scenePostStateKey                  = "post_state"
+	scenePostStateEnterContentManually = "post_state_enter_manually"
+	scenePostStateWaitingAlbumInfo     = "post_state_album_user_prompt"
+	scenePostStateWaitingDescription   = "post_state_description_user_prompt"
+)
 
 type PostController struct {
-	Usecase usecase.PostUsecase
+	useCase *usecase.PostUsecase
 }
 
-func NewChannelPostController(usecase usecase.PostUsecase) *PostController {
+func NewChannelPostController(usecase *usecase.PostUsecase) *PostController {
 	return &PostController{usecase}
 }
 
-func OnPostCreationStart(ctx telebot.Context) error {
-	menu := telebot.ReplyMarkup{ResizeKeyboard: true}
-	menu.Reply(
-		menu.Row(menu.Text("Назад в главное меню")),
+func (pc *PostController) OnPostCreationStart(ctx telebot.Context) error {
+	var (
+		menu                    = telebot.ReplyMarkup{ResizeKeyboard: true, ForceReply: true}
+		cancelBtn               = menu.Text(PostReturnToMainCommand)
+		enterInfoManuallyButton = menu.Text(PostEnterContentManuallyCommand)
 	)
 
-	return ctx.Send("Добро пожаловать в режим администратора", menu)
+	menu.Reply(
+		menu.Row(enterInfoManuallyButton),
+		menu.Row(cancelBtn),
+	)
+
+	ssn := session.GetSession(ctx)
+	ssn.Set(scenePostStateKey, scenePostStateWaitingAlbumInfo)
+
+	return ctx.Send(PostArtistReply, &menu)
 }
 
-func (c *PostController) FindPostAlbumInfo(ctx telebot.Context) error {
-	return nil
+func (pc *PostController) HandlePostAlbumInfo(ctx telebot.Context) error {
+	ssn := session.GetSession(ctx)
+	if ssn != nil {
+		ssnState, ok := ssn.Get(scenePostStateKey).(string)
+		if !ok {
+			return errors.New("post scene state is not set")
+		}
+
+		switch ssnState {
+		case scenePostStateWaitingAlbumInfo:
+		case scenePostStateWaitingDescription:
+		case scenePostStateEnterContentManually:
+
+		}
+	}
+
+	return errors.New("session is nil")
 }
 
-func (c *PostController) EnterPostDetails(ctx telebot.Context) error {
-	return nil
+func (pc *PostController) EnterPostContentManually(ctx telebot.Context) error {
+	var (
+		menu      = telebot.ReplyMarkup{ResizeKeyboard: true, ForceReply: true}
+		cancelBtn = menu.Text(PostReturnToMainCommand)
+	)
+
+	menu.Reply(menu.Row(cancelBtn))
+
+	ssn := session.GetSession(ctx)
+	ssn.Set(scenePostStateKey, scenePostStateEnterContentManually)
+
+	return ctx.Send(PostEnterManuallyReply, &menu)
+}
+
+func (pc *PostController) ExitToMainMenu(ctx telebot.Context) error {
+	session.GetSession(ctx).Delete(scenePostStateKey)
+	return scene.GetScene(ctx).EnterScene(ctx, SceneMainName)
 }

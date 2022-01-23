@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Hickar/sound-seeker-bot/internal/config"
-	sessionMiddleware "github.com/Hickar/sound-seeker-bot/internal/middleware/session"
+	sessionMiddleware "github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
 	"gopkg.in/tucnak/telebot.v3"
 )
 

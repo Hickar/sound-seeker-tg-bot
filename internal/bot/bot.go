@@ -5,8 +5,9 @@ import (
 
 	"github.com/Hickar/sound-seeker-bot/internal/config"
 	"github.com/Hickar/sound-seeker-bot/internal/controller"
-	"github.com/Hickar/sound-seeker-bot/internal/middleware/scene"
-	"github.com/Hickar/sound-seeker-bot/internal/middleware/session"
+	"github.com/Hickar/sound-seeker-bot/internal/usecase"
+	"github.com/Hickar/sound-seeker-bot/pkg/middleware/scene"
+	"github.com/Hickar/sound-seeker-bot/pkg/middleware/session"
 	"gopkg.in/tucnak/telebot.v3"
 )
 
@@ -29,11 +30,11 @@ func Start(conf config.Config) error {
 		return err
 	}
 
-	sessionStore := session.NewSessionStore()
+	sessionStore := session.NewMemorySessionStore()
 	sessionMiddleware := session.Middleware(sessionStore)
 
-	mainScene, _ := scene.NewScene(conf.Bot, "main", sessionMiddleware)
-	postScene, _ := scene.NewScene(conf.Bot, "post", sessionMiddleware)
+	mainScene, _ := scene.NewScene(conf.Bot, controller.SceneMainName, sessionMiddleware)
+	postScene, _ := scene.NewScene(conf.Bot, controller.ScenePostName, sessionMiddleware)
 
 	stage := scene.NewStage()
 	stage.Register(mainScene, postScene)
@@ -41,17 +42,16 @@ func Start(conf config.Config) error {
 
 	bot.Use(sessionMiddleware, stageMiddleware)
 	bot.Handle("/start", func(ctx telebot.Context) error {
-		return scene.GetScene(ctx).EnterScene(ctx, "main")
+		return scene.GetScene(ctx).EnterScene(ctx, controller.SceneMainName)
 	})
+
+	// Little hack to make bot pass updates of "text" type to scenes underneath :P
 	bot.Handle(telebot.OnText, func(context telebot.Context) error {return nil})
 
-	if err := controller.NewMainRouter(mainScene); err != nil {
-		return err
-	}
+	controller.NewMainRouter(mainScene)
 
-	if err := controller.NewPostRouter(postScene); err != nil {
-		return err
-	}
+	postController := controller.NewChannelPostController(&usecase.PostUsecase{})
+	controller.NewPostRouter(postScene, postController)
 
 	bot.Start()
 
