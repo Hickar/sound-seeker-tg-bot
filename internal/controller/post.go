@@ -72,6 +72,16 @@ func (pc *PostController) HandlePostAlbumInfo(ctx telebot.Context) error {
 					return ctx.Send(PostNotFoundReply)
 				}
 			}
+
+			//for _, result := range results {
+			//	artistName := "None"
+			//	if len(result.Artists) > 0 {
+			//		artistName = result.Artists[0]
+			//	}
+			//	ctx.Send(fmt.Sprintf("Artist: %s\nAlbum: %s\nYear: %s", artistName, result.Title, result.Year))
+			//}
+
+			return nil
 		case scenePostStateWaitingDescription:
 			return ctx.Send("waiting description")
 		case scenePostStateEnterContentManually:

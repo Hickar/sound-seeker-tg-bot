@@ -18,7 +18,7 @@ func (ds *DiscogsAlbumDatasource) GetByQuery(string) ([]entity.Album, error) {
 	return []entity.Album{}, nil
 }
 
-func (ds *DiscogsAlbumDatasource) GetById(string) (entity.Album, error) {
+func (ds *DiscogsAlbumDatasource) GetAlbumById(string) (entity.Album, error) {
 	return entity.Album{}, nil
 }
 

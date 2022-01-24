@@ -75,7 +75,7 @@ func Start(conf config.Config) error {
 	albumRepo := repository.NewAlbumRepo(
 		localDatasource.New(db),
 		remoteDatasource.NewDiscogsDatasource(&httpClient),
-		remoteDatasource.NewSpotifyDatasource(&httpClient),
+		remoteDatasource.NewSpotifyDatasource(&httpClient, conf.Spotify),
 	)
 
 	// Scenes, controllers and usecases
