@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Hickar/sound-seeker-bot/internal/config"
 	"github.com/Hickar/sound-seeker-bot/internal/entity"
 )
 
 const (
 	_spotifyGetAlbumByIdEndpoint   = "https://api.spotify.com/v1/albums/%s"
+	_spotifySearchAlbumsEndpoint   = "https://api.spotify.com/v1/search?q=%s&type=album"
 	_spotifyGetAccessTokenEndpoint = "https://accounts.spotify.com/api/token"
 )
 
@@ -35,25 +35,68 @@ type spotifyAlbumDto struct {
 	ReleaseDate string   `json:"release_date"`
 }
 
+type spotifySearchResponse struct {
+	Albums struct {
+		Items []spotifyAlbumDto `json:"items"`
+	} `json:"albums"`
+}
+
+type SpotifyCredentials struct {
+	Id     string
+	Secret string
+}
+
 type SpotifyAlbumDatasource struct {
 	client         *http.Client
-	credentials    config.SpotifyConfig
+	credentials    SpotifyCredentials
 	tokenExpiresIn time.Time
 	accessToken    string
 }
 
-func NewSpotifyDatasource(client *http.Client, credentials config.SpotifyConfig) *SpotifyAlbumDatasource {
+func NewSpotifyDatasource(client *http.Client, credentials SpotifyCredentials) *SpotifyAlbumDatasource {
 	return &SpotifyAlbumDatasource{client: client, credentials: credentials}
 }
 
 func (ds *SpotifyAlbumDatasource) GetByQuery(query string) ([]entity.Album, error) {
-	return []entity.Album{}, nil
+	var albums []entity.Album
+
+	accessToken, err := ds.getSpotifyAccessToken(ds.credentials.Id, ds.credentials.Secret)
+	if err != nil {
+		return albums, err
+	}
+
+	query = strings.Replace(query, " ", "+", -1)
+	req, _ := http.NewRequest("GET", fmt.Sprintf(_spotifySearchAlbumsEndpoint, query), nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	resp, err := ds.client.Do(req)
+	if err != nil {
+		return albums, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return albums, fmt.Errorf("unable to get search albums by id: got code %d instead of %d", resp.StatusCode, http.StatusOK)
+	}
+
+	defer resp.Body.Close()
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	var searchResp spotifySearchResponse
+
+	if err := json.Unmarshal(respBytes, &searchResp); err != nil {
+		return albums, err
+	}
+
+	for _, album := range searchResp.Albums.Items {
+		albums = append(albums, spotifyAlbumDtoToEntity(album))
+	}
+
+	return albums, nil
 }
 
 func (ds *SpotifyAlbumDatasource) GetAlbumById(id string) (entity.Album, error) {
 	var album entity.Album
 
-	accessToken, err := ds.getSpotifyAccessToken(ds.credentials.ClientId, ds.credentials.ClientSecret)
+	accessToken, err := ds.getSpotifyAccessToken(ds.credentials.Id, ds.credentials.Secret)
 	if err != nil {
 		return album, err
 	}

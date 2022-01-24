@@ -22,15 +22,18 @@ func NewAlbumRepo(local, discogs, spotify AlbumDatasource) *AlbumRepository {
 }
 
 func (r *AlbumRepository) GetAlbumsByQuery(query string) ([]entity.Album, error) {
-	return []entity.Album{}, nil
+	dataSource, ok := r.remoteSources["spotify"]
+	if !ok {
+		return []entity.Album{}, errors.New("spotify data source is not defined")
+	}
+
+	return dataSource.GetByQuery(query)
 }
 
 func (r *AlbumRepository) GetAlbumBySpotifyAlbumID(id string) (entity.Album, error) {
-	var album entity.Album
-
 	dataSource, ok := r.remoteSources["spotify"]
 	if !ok {
-		return album, errors.New("spotify data source is not defined")
+		return entity.Album{}, errors.New("spotify data source is not defined")
 	}
 
 	return dataSource.GetAlbumById(id)

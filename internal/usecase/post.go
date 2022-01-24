@@ -16,7 +16,7 @@ func NewPostUsecase(repo *repository.AlbumRepository) *PostUsecase {
 	return &PostUsecase{albumRepo: *repo}
 }
 
-func (uc *PostUsecase) FindAlbum(query string) ([]entity.Album, error) {
+func (uc *PostUsecase) FindAlbums(query string) ([]entity.Album, error) {
 	var (
 		albums []entity.Album
 		err    error
@@ -45,7 +45,10 @@ func (uc *PostUsecase) FindAlbum(query string) ([]entity.Album, error) {
 	} else if strings.Contains(query, "discogs") {
 		//album, err = uc.albumRepo.GetAlbumByDiscogsReleaseID()
 	} else {
-		//albums, err = uc.albumRepo.GetAlbumsByQuery(query)
+		albums, err = uc.albumRepo.GetAlbumsByQuery(query)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return albums, err

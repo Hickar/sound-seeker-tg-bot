@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/Hickar/sound-seeker-bot/internal/usecase"
 	"github.com/Hickar/sound-seeker-bot/pkg/middleware/scene"
@@ -64,7 +65,7 @@ func (pc *PostController) HandlePostAlbumInfo(ctx telebot.Context) error {
 
 		switch ssnState {
 		case scenePostStateWaitingAlbumInfo:
-			_, err := pc.useCase.FindAlbum(msg)
+			results, err := pc.useCase.FindAlbums(msg)
 			if err != nil {
 				if errors.Is(err, usecase.ErrInvalidSpotifyURL) {
 					return ctx.Send(PostInvalidSpotifyURLReply)
@@ -73,13 +74,13 @@ func (pc *PostController) HandlePostAlbumInfo(ctx telebot.Context) error {
 				}
 			}
 
-			//for _, result := range results {
-			//	artistName := "None"
-			//	if len(result.Artists) > 0 {
-			//		artistName = result.Artists[0]
-			//	}
-			//	ctx.Send(fmt.Sprintf("Artist: %s\nAlbum: %s\nYear: %s", artistName, result.Title, result.Year))
-			//}
+			for _, result := range results {
+				artistName := "None"
+				if len(result.Artists) > 0 {
+					artistName = result.Artists[0]
+				}
+				ctx.Send(fmt.Sprintf("Artist: %s\nAlbum: %s\nYear: %s", artistName, result.Title, result.Year))
+			}
 
 			return nil
 		case scenePostStateWaitingDescription:

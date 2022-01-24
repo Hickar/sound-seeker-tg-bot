@@ -63,7 +63,7 @@ func Start(conf config.Config) error {
 	// Little hack to make bot pass updates of "text" type to scenes underneath :P
 	bot.Handle(telebot.OnText, func(context telebot.Context) error { return nil })
 
-	// HTTP/DB clients, repositories
+	// HTTP/DB clients
 	httpClient := http.Client{}
 	db, err := postgres.New(conf.Db)
 	if err != nil {
@@ -72,10 +72,14 @@ func Start(conf config.Config) error {
 	sqlDb, _ := db.DB()
 	defer sqlDb.Close()
 
+	// Repositories
 	albumRepo := repository.NewAlbumRepo(
 		localDatasource.New(db),
 		remoteDatasource.NewDiscogsDatasource(&httpClient),
-		remoteDatasource.NewSpotifyDatasource(&httpClient, conf.Spotify),
+		remoteDatasource.NewSpotifyDatasource(&httpClient, remoteDatasource.SpotifyCredentials{
+			Id:     conf.Spotify.ClientId,
+			Secret: conf.Spotify.ClientSecret,
+		}),
 	)
 
 	// Scenes, controllers and usecases
