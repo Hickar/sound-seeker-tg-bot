@@ -30,7 +30,8 @@ type spotifyAlbumDto struct {
 	Artists []struct {
 		Name string `json:"name"`
 	} `json:"artists"`
-	Title       string   `json:"name,omitempty"`
+	Id          string   `json:"id"`
+	Title       string   `json:"name"`
 	Genres      []string `json:"genres"`
 	ReleaseDate string   `json:"release_date"`
 }
@@ -75,19 +76,26 @@ func (ds *SpotifyAlbumDatasource) GetByQuery(query string) ([]entity.Album, erro
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return albums, fmt.Errorf("unable to get search albums by id: got code %d instead of %d", resp.StatusCode, http.StatusOK)
+		switch resp.StatusCode {
+		case http.StatusForbidden:
+			err = ErrBadOAuth
+		case http.StatusInternalServerError:
+			err = ErrInternal
+		}
+
+		return albums, err
 	}
 
 	defer resp.Body.Close()
 	respBytes, _ := ioutil.ReadAll(resp.Body)
 	var searchResp spotifySearchResponse
 
-	if err := json.Unmarshal(respBytes, &searchResp); err != nil {
+	if err = json.Unmarshal(respBytes, &searchResp); err != nil {
 		return albums, err
 	}
 
 	for _, album := range searchResp.Albums.Items {
-		albums = append(albums, spotifyAlbumDtoToEntity(album))
+		albums = append(albums, ds.spotifyAlbumDtoToEntity(album))
 	}
 
 	return albums, nil
@@ -110,7 +118,14 @@ func (ds *SpotifyAlbumDatasource) GetAlbumById(id string) (entity.Album, error) 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return album, fmt.Errorf("unable to get spotify album by id: got code %d instead of %d", resp.StatusCode, http.StatusOK)
+		switch resp.StatusCode {
+		case http.StatusBadRequest:
+			err = ErrNotFound
+		case http.StatusTooManyRequests:
+			err = ErrExceededLimit
+		}
+
+		return album, err
 	}
 
 	defer resp.Body.Close()
@@ -121,7 +136,7 @@ func (ds *SpotifyAlbumDatasource) GetAlbumById(id string) (entity.Album, error) 
 		return album, err
 	}
 
-	album = spotifyAlbumDtoToEntity(respAlbum)
+	album = ds.spotifyAlbumDtoToEntity(respAlbum)
 	return album, nil
 }
 
@@ -148,14 +163,14 @@ func (ds *SpotifyAlbumDatasource) getSpotifyAccessToken(id, secret string) (stri
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unable to get spotify album by id: got code %d instead of %d", resp.StatusCode, http.StatusOK)
+		return "", ErrSpotifyBadRefreshToken
 	}
 
 	defer resp.Body.Close()
 	respByte, _ := ioutil.ReadAll(resp.Body)
 	var authInfo spotifyAuthResponse
-	if err := json.Unmarshal(respByte, &authInfo); err != nil {
-		return "", nil
+	if err = json.Unmarshal(respByte, &authInfo); err != nil {
+		return "", err
 	}
 
 	ds.tokenExpiresIn = time.Now().Add(time.Second * time.Duration(authInfo.ExpiresIn))
@@ -166,9 +181,10 @@ func (ds *SpotifyAlbumDatasource) SaveAlbum(album entity.Album) error {
 	return nil
 }
 
-func spotifyAlbumDtoToEntity(dto spotifyAlbumDto) entity.Album {
+func (ds *SpotifyAlbumDatasource) spotifyAlbumDtoToEntity(dto spotifyAlbumDto) entity.Album {
 	var album entity.Album
 
+	album.SpotifyId = dto.Id
 	album.Title = dto.Title
 	for _, genre := range dto.Genres {
 		album.Genres = append(album.Genres, genre)
