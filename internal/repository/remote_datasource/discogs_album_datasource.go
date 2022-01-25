@@ -13,15 +13,17 @@ import (
 
 const (
 	_discogsGetAlbumByIdEndpoint = "https://api.discogs.com/masters/%s"
-	_discogsSearchAlbumsEndpoint = "https://api.discogs.com/database/search?q=%s"
+	_discogsSearchAlbumsEndpoint = "https://api.discogs.com/database/search?q=%s&type=release"
 )
 
 type discogsSearchResponse struct {
-
+	Results []struct {
+		ID uint64 `json:"id"`
+	} `json:"results"`
 }
 
 type discogsAlbumDto struct {
-	ID      uint64    `json:"id"`
+	ID      uint64   `json:"id"`
 	Genres  []string `json:"genres"`
 	Styles  []string `json:"styles"`
 	Year    int      `json:"year"`
@@ -48,7 +50,7 @@ func NewDiscogsDatasource(client *http.Client, credentials DiscogsCredentials) *
 	return &DiscogsAlbumDatasource{client: client, credentials: credentials}
 }
 
-func (ds *DiscogsAlbumDatasource) GetByQuery(query string) ([]entity.Album, error) {
+func (ds *DiscogsAlbumDatasource) GetByQuery(query string, limit int) ([]entity.Album, error) {
 	var albums []entity.Album
 
 	query = strings.Replace(query, " ", "+", -1)
@@ -57,6 +59,11 @@ func (ds *DiscogsAlbumDatasource) GetByQuery(query string) ([]entity.Album, erro
 	req.Header.Set("oauth_consumer_token", ds.credentials.ConsumerToken)
 	req.Header.Set("oauth_token", ds.credentials.OAuthToken)
 	req.Header.Set("oauth_verifier", ds.credentials.VerifyKey)
+	//req.Header.Set("oauth_consumer_key", ds.credentials.ConsumerKey)
+	//req.Header.Set("oauth_signature_method", "PLAINTEXT")
+	//req.Header.Set("oauth_signature", fmt.Sprintf("%s&%s", ds.credentials.ConsumerToken, ds.credentials.OAuthSecret))
+	//req.Header.Set("oauth_token", ds.credentials.OAuthToken)
+	//req.Header.Set("oauth_verifier", ds.credentials.VerifyKey)
 
 	resp, err := ds.client.Do(req)
 	if err != nil {
@@ -69,14 +76,27 @@ func (ds *DiscogsAlbumDatasource) GetByQuery(query string) ([]entity.Album, erro
 
 	defer resp.Body.Close()
 	respBytes, _ := ioutil.ReadAll(resp.Body)
-	var respAlbum discogsAlbumDto
+	var respResults discogsSearchResponse
 
-	if err := json.Unmarshal(respBytes, &respAlbum); err != nil {
-		return album, err
+	if err := json.Unmarshal(respBytes, &respResults); err != nil {
+		return albums, err
 	}
 
-	album = ds.discogsAlbumDtoToEntity(respAlbum)
-	return album, nil
+	for i, result := range respResults.Results {
+		if i == limit {
+			break
+		}
+
+		id := strconv.FormatUint(result.ID, 10)
+		album, err := ds.GetAlbumById(id)
+		if err != nil {
+			return albums, err
+		}
+
+		albums = append(albums, album)
+	}
+
+	return albums, nil
 }
 
 func (ds *DiscogsAlbumDatasource) GetAlbumById(id string) (entity.Album, error) {

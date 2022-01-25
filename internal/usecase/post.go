@@ -52,7 +52,7 @@ func (uc *PostUsecase) FindAlbums(query string) ([]entity.Album, error) {
 
 		albums = append(albums, album)
 	} else {
-		albums, err = uc.albumRepo.GetAlbumsByQuery(query)
+		albums, err = uc.albumRepo.GetAlbumsByQuery(query, 3)
 		if err != nil {
 			return nil, err
 		}

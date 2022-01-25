@@ -13,7 +13,7 @@ func New(db *gorm.DB) *AlbumDatasource {
 	return &AlbumDatasource{db: db}
 }
 
-func (ds *AlbumDatasource) GetByQuery(string) ([]entity.Album, error) {
+func (ds *AlbumDatasource) GetByQuery(string, int) ([]entity.Album, error) {
 	return []entity.Album{}, nil
 }
 

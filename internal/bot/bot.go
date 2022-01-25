@@ -86,6 +86,7 @@ func Start(conf config.Config) error {
 			Id:     conf.Spotify.ClientId,
 			Secret: conf.Spotify.ClientSecret,
 		}),
+		remoteDatasource.NewMusicBrainzDatasource(&httpClient),
 	)
 
 	// Scenes, controllers and usecases

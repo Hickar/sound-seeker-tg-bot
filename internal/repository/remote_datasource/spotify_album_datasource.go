@@ -16,8 +16,11 @@ import (
 
 const (
 	_spotifyGetAlbumByIdEndpoint   = "https://api.spotify.com/v1/albums/%s"
-	_spotifySearchAlbumsEndpoint   = "https://api.spotify.com/v1/search?q=%s&type=album"
+	_spotifySearchAlbumsEndpoint   = "https://api.spotify.com/v1/search?q=%s&type=album&limit=%d"
 	_spotifyGetAccessTokenEndpoint = "https://accounts.spotify.com/api/token"
+
+	_spotifyDefaultLimit = 20
+	_spotifyMaxLimit     = 50
 )
 
 type spotifyAuthResponse struct {
@@ -58,8 +61,12 @@ func NewSpotifyDatasource(client *http.Client, credentials SpotifyCredentials) *
 	return &SpotifyAlbumDatasource{client: client, credentials: credentials}
 }
 
-func (ds *SpotifyAlbumDatasource) GetByQuery(query string) ([]entity.Album, error) {
+func (ds *SpotifyAlbumDatasource) GetByQuery(query string, limit int) ([]entity.Album, error) {
 	var albums []entity.Album
+
+	if limit < 0 || limit > _spotifyMaxLimit {
+		limit = _spotifyMaxLimit
+	}
 
 	accessToken, err := ds.getSpotifyAccessToken(ds.credentials.Id, ds.credentials.Secret)
 	if err != nil {
@@ -67,7 +74,9 @@ func (ds *SpotifyAlbumDatasource) GetByQuery(query string) ([]entity.Album, erro
 	}
 
 	query = strings.Replace(query, " ", "+", -1)
-	req, _ := http.NewRequest("GET", fmt.Sprintf(_spotifySearchAlbumsEndpoint, query), nil)
+	endpoint := fmt.Sprintf(_spotifySearchAlbumsEndpoint, query, limit)
+
+	req, _ := http.NewRequest("GET", endpoint, nil)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	resp, err := ds.client.Do(req)
