@@ -2,11 +2,13 @@ package remote_datasource
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Hickar/sound-seeker-bot/internal/entity"
 )
@@ -18,14 +20,14 @@ const (
 
 type discogsSearchResponse struct {
 	Results []struct {
-		ID uint64 `json:"id"`
+		ID uint64 `json:"master_id"`
 	} `json:"results"`
 }
 
 type discogsAlbumDto struct {
 	ID      uint64   `json:"id"`
-	Genres  []string `json:"genres"`
-	Styles  []string `json:"styles"`
+	Genres  []string `json:"genres,genre"`
+	Styles  []string `json:"styles,style"`
 	Year    int      `json:"year"`
 	Artists []struct {
 		Name string `json:"name"`
@@ -54,16 +56,13 @@ func (ds *DiscogsAlbumDatasource) GetByQuery(query string, limit int) ([]entity.
 	var albums []entity.Album
 
 	query = strings.Replace(query, " ", "+", -1)
-	req, _ := http.NewRequest("GET", fmt.Sprintf(_discogsSearchAlbumsEndpoint, query), nil)
-	req.Header.Set("oauth_consumer_key", ds.credentials.ConsumerKey)
-	req.Header.Set("oauth_consumer_token", ds.credentials.ConsumerToken)
-	req.Header.Set("oauth_token", ds.credentials.OAuthToken)
-	req.Header.Set("oauth_verifier", ds.credentials.VerifyKey)
-	//req.Header.Set("oauth_consumer_key", ds.credentials.ConsumerKey)
-	//req.Header.Set("oauth_signature_method", "PLAINTEXT")
-	//req.Header.Set("oauth_signature", fmt.Sprintf("%s&%s", ds.credentials.ConsumerToken, ds.credentials.OAuthSecret))
-	//req.Header.Set("oauth_token", ds.credentials.OAuthToken)
-	//req.Header.Set("oauth_verifier", ds.credentials.VerifyKey)
+	req, err := http.NewRequest("GET", fmt.Sprintf(_discogsSearchAlbumsEndpoint, query), nil)
+	if err != nil {
+		return albums, err
+	}
+
+	authHeader := ds.buildAuthHeader(ds.credentials)
+	req.Header.Set("Authorization", authHeader)
 
 	resp, err := ds.client.Do(req)
 	if err != nil {
@@ -90,7 +89,11 @@ func (ds *DiscogsAlbumDatasource) GetByQuery(query string, limit int) ([]entity.
 		id := strconv.FormatUint(result.ID, 10)
 		album, err := ds.GetAlbumById(id)
 		if err != nil {
-			return albums, err
+			if errors.Is(err, ErrNotFound) {
+				continue
+			} else {
+				return albums, err
+			}
 		}
 
 		albums = append(albums, album)
@@ -103,10 +106,9 @@ func (ds *DiscogsAlbumDatasource) GetAlbumById(id string) (entity.Album, error) 
 	var album entity.Album
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf(_discogsGetAlbumByIdEndpoint, id), nil)
-	req.Header.Set("oauth_consumer_key", ds.credentials.ConsumerKey)
-	req.Header.Set("oauth_consumer_token", ds.credentials.ConsumerToken)
-	req.Header.Set("oauth_token", ds.credentials.OAuthToken)
-	req.Header.Set("oauth_verifier", ds.credentials.VerifyKey)
+
+	authHeader := ds.buildAuthHeader(ds.credentials)
+	req.Header.Set("Authorization", authHeader)
 
 	resp, err := ds.client.Do(req)
 	if err != nil {
@@ -153,6 +155,17 @@ func (ds *DiscogsAlbumDatasource) discogsAlbumDtoToEntity(dto discogsAlbumDto) e
 	}
 
 	return album
+}
+
+func (ds *DiscogsAlbumDatasource) buildAuthHeader(credentials DiscogsCredentials) string {
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	return fmt.Sprintf(`OAuth oauth_consumer_key="%s",oauth_token="%s",oauth_signature_method="PLAINTEXT",oauth_timestamp="%s",oauth_nonce="cSrDRTKTPJw",oauth_version="1.0",oauth_verifier="%s",oauth_signature="%s"`,
+		credentials.ConsumerKey,
+		credentials.OAuthToken,
+		timestamp,
+		credentials.VerifyKey,
+		fmt.Sprintf("%s&%s", credentials.ConsumerToken, credentials.OAuthSecret))
 }
 
 func (ds *DiscogsAlbumDatasource) SaveAlbum(album entity.Album) error {

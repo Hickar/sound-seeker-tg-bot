@@ -50,7 +50,11 @@ func (ds *MusicBrainzAlbumDatasource) GetByQuery(query string, limit int) ([]ent
 	query = strings.Replace(query, " ", "+", -1)
 
 	endpoint := fmt.Sprintf(_musicBrainzSearchAlbumsEndpoint, query, limit)
-	req, _ := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return albums, err
+	}
+
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := ds.client.Do(req)
@@ -90,6 +94,10 @@ func (ds *MusicBrainzAlbumDatasource) GetAlbumById(id string) (entity.Album, err
 func (ds *MusicBrainzAlbumDatasource) musicBrainzAlbumDtoToEntity(dto musicBrainzAlbumDto, country string) entity.Album {
 	var album entity.Album
 
+	for _, artist := range dto.ArtistCredits {
+		album.Artists = append(album.Artists, artist.Artist.Name)
+	}
+
 	album.Title = dto.Title
 	album.Country = country
 
@@ -102,7 +110,11 @@ func (ds *MusicBrainzAlbumDatasource) musicBrainzAlbumDtoToEntity(dto musicBrain
 func (ds *MusicBrainzAlbumDatasource) getArtistCountry(artistId string) (string, error) {
 	var country string
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf(_musicBrainzGetArtistByIdEndpoint, artistId), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(_musicBrainzGetArtistByIdEndpoint, artistId), nil)
+	if err != nil {
+		return country, err
+	}
+
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := ds.client.Do(req)

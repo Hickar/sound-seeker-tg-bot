@@ -33,9 +33,9 @@ func (r *AlbumRepository) GetAlbumsByQuery(query string, limit int) ([]entity.Al
 	}
 
 	dsgsAlbumResults, err := r.remoteSources["discogs"].GetByQuery(query, limit)
-	//if err != nil {
-	//	return albums, err
-	//}
+	if err != nil {
+		return albums, err
+	}
 
 	stfyAlbumResults, err := r.remoteSources["spotify"].GetByQuery(query, limit)
 	if err != nil {
@@ -46,7 +46,7 @@ func (r *AlbumRepository) GetAlbumsByQuery(query string, limit int) ([]entity.Al
 		return albums, nil
 	}
 
-	return r.composeAlbumSlicesInfo(mbAlbumResults, stfyAlbumResults, mbAlbumResults), nil
+	return r.composeAlbumSlicesInfo(mbAlbumResults, dsgsAlbumResults, stfyAlbumResults), nil
 }
 
 func (r *AlbumRepository) GetAlbumBySpotifyAlbumID(id string) (entity.Album, error) {
@@ -100,7 +100,7 @@ func (r *AlbumRepository) composeAlbumSlicesInfo(albumsResults ...[]entity.Album
 		return albums
 	}
 
-	totalMinLen := totalSlicesMinLen(albumsResults...) - 1
+	totalMinLen := totalSlicesMinLen(albumsResults...)
 	for i := 0; i < totalMinLen; i++ {
 		var composables []entity.Album
 		for _, result := range albumsResults {
@@ -146,6 +146,14 @@ func (r *AlbumRepository) composeAlbumsInfo (albums ...entity.Album) entity.Albu
 
 		if resultAlbum.SpotifyLink == "" {
 			resultAlbum.SpotifyLink = album.SpotifyLink
+		}
+
+		if resultAlbum.SpotifyId == "" {
+			resultAlbum.SpotifyId = album.SpotifyId
+		}
+
+		if resultAlbum.DiscogsId == "" {
+			resultAlbum.DiscogsId = album.DiscogsId
 		}
 	}
 

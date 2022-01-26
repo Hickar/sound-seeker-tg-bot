@@ -37,6 +37,9 @@ type spotifyAlbumDto struct {
 	Title       string   `json:"name"`
 	Genres      []string `json:"genres"`
 	ReleaseDate string   `json:"release_date"`
+	ExternalURLs struct{
+		Spotify string `json:"spotify"`
+	} `json:"external_urls"`
 }
 
 type spotifySearchResponse struct {
@@ -76,7 +79,11 @@ func (ds *SpotifyAlbumDatasource) GetByQuery(query string, limit int) ([]entity.
 	query = strings.Replace(query, " ", "+", -1)
 	endpoint := fmt.Sprintf(_spotifySearchAlbumsEndpoint, query, limit)
 
-	req, _ := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return albums, err
+	}
+
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	resp, err := ds.client.Do(req)
@@ -118,7 +125,11 @@ func (ds *SpotifyAlbumDatasource) GetAlbumById(id string) (entity.Album, error) 
 		return album, err
 	}
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf(_spotifyGetAlbumByIdEndpoint, id), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(_spotifyGetAlbumByIdEndpoint, id), nil)
+	if err != nil {
+		return album, err
+	}
+
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	resp, err := ds.client.Do(req)
@@ -161,7 +172,11 @@ func (ds *SpotifyAlbumDatasource) getSpotifyAccessToken(id, secret string) (stri
 	formData.Set("grant_type", "client_credentials")
 	encodedData := formData.Encode()
 
-	req, _ := http.NewRequest("POST", _spotifyGetAccessTokenEndpoint, strings.NewReader(encodedData))
+	req, err := http.NewRequest("POST", _spotifyGetAccessTokenEndpoint, strings.NewReader(encodedData))
+	if err != nil {
+		return "", err
+	}
+
 	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", accessToken))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(encodedData)))
@@ -194,7 +209,8 @@ func (ds *SpotifyAlbumDatasource) spotifyAlbumDtoToEntity(dto spotifyAlbumDto) e
 	var album entity.Album
 
 	album.SpotifyId = dto.Id
-	album.Title = dto.Title
+	album.SpotifyLink = dto.ExternalURLs.Spotify
+
 	for _, genre := range dto.Genres {
 		album.Genres = append(album.Genres, genre)
 	}

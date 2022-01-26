@@ -79,7 +79,8 @@ func (pc *PostController) HandlePostAlbumInfo(ctx telebot.Context) error {
 				if len(result.Artists) > 0 {
 					artistName = result.Artists[0]
 				}
-				ctx.Send(fmt.Sprintf("Artist: %s\nAlbum: %s\nYear: %s", artistName, result.Title, result.Year))
+
+				ctx.Send(fmt.Sprintf("Artist: %s\nAlbum: %s\nYear: %s\nCountry: %s\nSpotify: %s", artistName, result.Title, result.Year, result.Country, result.SpotifyLink))
 			}
 
 			return nil
