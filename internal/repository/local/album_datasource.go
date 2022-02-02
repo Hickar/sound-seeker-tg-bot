@@ -1,4 +1,4 @@
-package local_datasource
+package local
 
 import (
 	"github.com/Hickar/sound-seeker-bot/internal/entity"

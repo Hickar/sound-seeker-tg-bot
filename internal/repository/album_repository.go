@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/Hickar/sound-seeker-bot/internal/entity"
 )
@@ -25,28 +26,43 @@ func NewAlbumRepo(local, discogs, spotify, musicBrainz AlbumDatasource) *AlbumRe
 }
 
 func (r *AlbumRepository) GetAlbumsByQuery(query string, limit int) ([]entity.Album, error) {
-	var albums []entity.Album
+	var wg sync.WaitGroup
 
-	mbAlbumResults, err := r.remoteSources["musicbrainz"].GetByQuery(query, limit)
-	if err != nil {
-		return albums, err
+	resultsC := make(chan []entity.Album)
+	errC := make(chan error)
+	quitC := make(chan struct{})
+
+	wg.Add(len(r.remoteSources))
+
+	for _, dataSource := range r.remoteSources {
+		go func(source AlbumDatasource) {
+			defer wg.Done()
+
+			results, err := source.GetByQuery(query, limit)
+			if err != nil {
+				errC <- err
+			}
+
+			resultsC <- results
+		}(dataSource)
 	}
 
-	dsgsAlbumResults, err := r.remoteSources["discogs"].GetByQuery(query, limit)
-	if err != nil {
-		return albums, err
-	}
+	go func() {
+		wg.Wait()
+		close(quitC)
+	}()
 
-	stfyAlbumResults, err := r.remoteSources["spotify"].GetByQuery(query, limit)
-	if err != nil {
-		return albums, err
+	var results [][]entity.Album
+	for {
+		select {
+		case resultGroup := <-resultsC:
+			results = append(results, resultGroup)
+		case err := <-errC:
+			return []entity.Album{}, err
+		case <-quitC:
+			return r.composeAlbumSlicesInfo(results...), nil
+		}
 	}
-
-	if areEmpty(mbAlbumResults, dsgsAlbumResults, stfyAlbumResults)  {
-		return albums, nil
-	}
-
-	return r.composeAlbumSlicesInfo(mbAlbumResults, dsgsAlbumResults, stfyAlbumResults), nil
 }
 
 func (r *AlbumRepository) GetAlbumBySpotifyAlbumID(id string) (entity.Album, error) {
@@ -60,8 +76,6 @@ func (r *AlbumRepository) GetAlbumBySpotifyAlbumID(id string) (entity.Album, err
 	//if err != nil {
 	//	return entity.Album{}, err
 	//}
-
-
 
 }
 
@@ -100,6 +114,8 @@ func (r *AlbumRepository) composeAlbumSlicesInfo(albumsResults ...[]entity.Album
 		return albums
 	}
 
+	albumsResults = deleteEmpty(albumsResults...)
+
 	totalMinLen := totalSlicesMinLen(albumsResults...)
 	for i := 0; i < totalMinLen; i++ {
 		var composables []entity.Album
@@ -116,7 +132,7 @@ func (r *AlbumRepository) composeAlbumSlicesInfo(albumsResults ...[]entity.Album
 	return albums
 }
 
-func (r *AlbumRepository) composeAlbumsInfo (albums ...entity.Album) entity.Album {
+func (r *AlbumRepository) composeAlbumsInfo(albums ...entity.Album) entity.Album {
 	var resultAlbum entity.Album
 
 	for _, album := range albums {
@@ -142,6 +158,10 @@ func (r *AlbumRepository) composeAlbumsInfo (albums ...entity.Album) entity.Albu
 
 		if len(resultAlbum.Styles) == 0 {
 			resultAlbum.Styles = album.Styles
+		}
+
+		if resultAlbum.CoverURL == "" {
+			resultAlbum.CoverURL = album.CoverURL
 		}
 
 		if resultAlbum.SpotifyLink == "" {
@@ -194,4 +214,19 @@ func areEmpty(slices ...[]entity.Album) bool {
 	}
 
 	return true
+}
+
+func deleteEmpty(slices ...[]entity.Album) [][]entity.Album {
+	for i, slice := range slices {
+		if slice == nil || len(slice) == 0 {
+			slices = remove(slices, i)
+		}
+	}
+
+	return slices
+}
+
+func remove(slice [][]entity.Album, i int) [][]entity.Album {
+	slice[i] = slice[len(slice)-1]
+	return slice[:len(slice)-1]
 }

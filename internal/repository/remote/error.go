@@ -1,4 +1,4 @@
-package remote_datasource
+package remote
 
 import "errors"
 

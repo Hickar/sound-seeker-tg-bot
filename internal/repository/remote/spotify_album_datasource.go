@@ -1,4 +1,4 @@
-package remote_datasource
+package remote
 
 import (
 	"encoding/base64"
@@ -37,6 +37,9 @@ type spotifyAlbumDto struct {
 	Title       string   `json:"name"`
 	Genres      []string `json:"genres"`
 	ReleaseDate string   `json:"release_date"`
+	Images []struct{
+		URL string `json:"url"`
+	} `json:"images"`
 	ExternalURLs struct{
 		Spotify string `json:"spotify"`
 	} `json:"external_urls"`
@@ -77,7 +80,7 @@ func (ds *SpotifyAlbumDatasource) GetByQuery(query string, limit int) ([]entity.
 	}
 
 	query = strings.Replace(query, " ", "+", -1)
-	endpoint := fmt.Sprintf(_spotifySearchAlbumsEndpoint, query, limit)
+	endpoint := fmt.Sprintf(_spotifySearchAlbumsEndpoint, strings.ToLower(query), limit)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -210,6 +213,7 @@ func (ds *SpotifyAlbumDatasource) spotifyAlbumDtoToEntity(dto spotifyAlbumDto) e
 
 	album.SpotifyId = dto.Id
 	album.SpotifyLink = dto.ExternalURLs.Spotify
+	album.CoverURL = dto.Images[0].URL
 
 	for _, genre := range dto.Genres {
 		album.Genres = append(album.Genres, genre)

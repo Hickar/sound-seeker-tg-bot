@@ -7,6 +7,7 @@ type Album struct {
 	Year        string
 	Genres      []string
 	Styles      []string
+	CoverURL    string
 	SpotifyLink string
 	SpotifyId   string
 	DiscogsId   string

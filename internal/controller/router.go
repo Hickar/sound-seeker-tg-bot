@@ -15,7 +15,9 @@ func NewMainRouter(bot *scene.Scene, controller *MainController) {
 
 func NewPostRouter(bot *scene.Scene, controller *PostController) {
 	bot.HandleStart(controller.OnPostCreationStart)
-	bot.Handle(telebot.OnText, controller.HandlePostAlbumInfo)
+	bot.Handle(telebot.OnText, controller.HandlePostUserInput)
 	bot.Handle(PostReturnToMainCommand, controller.ExitToMainMenu)
 	bot.Handle(PostEnterContentManuallyCommand, controller.EnterPostContentManually)
+	bot.Handle(PostCancelSendingCommand, controller.OnPostCreationStart)
+	bot.Handle(PostConfirmSendingCommand, controller.SendReport)
 }

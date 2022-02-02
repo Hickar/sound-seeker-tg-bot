@@ -1,4 +1,4 @@
-package remote_datasource
+package remote
 
 import (
 	"encoding/json"
@@ -56,7 +56,8 @@ func (ds *DiscogsAlbumDatasource) GetByQuery(query string, limit int) ([]entity.
 	var albums []entity.Album
 
 	query = strings.Replace(query, " ", "+", -1)
-	req, err := http.NewRequest("GET", fmt.Sprintf(_discogsSearchAlbumsEndpoint, query), nil)
+	endpoint := fmt.Sprintf(_discogsSearchAlbumsEndpoint, strings.ToLower(query))
+	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return albums, err
 	}

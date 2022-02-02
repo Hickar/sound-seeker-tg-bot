@@ -1,4 +1,4 @@
-package remote_datasource
+package remote
 
 import (
 	"encoding/json"
@@ -49,7 +49,7 @@ func (ds *MusicBrainzAlbumDatasource) GetByQuery(query string, limit int) ([]ent
 
 	query = strings.Replace(query, " ", "+", -1)
 
-	endpoint := fmt.Sprintf(_musicBrainzSearchAlbumsEndpoint, query, limit)
+	endpoint := fmt.Sprintf(_musicBrainzSearchAlbumsEndpoint, strings.ToLower(query), limit)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return albums, err

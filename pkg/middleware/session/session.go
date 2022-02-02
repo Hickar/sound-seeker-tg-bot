@@ -1,6 +1,9 @@
 package session
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"sync"
 
 	"gopkg.in/tucnak/telebot.v3"
@@ -18,7 +21,6 @@ func NewSession() *Session {
 		RWMutex: sync.RWMutex{},
 		Store:   make(map[string]interface{}),
 	}
-
 }
 
 func NewSessionWithStore(store map[string]interface{}) *Session {
@@ -39,6 +41,23 @@ func (s *Session) Get(key string) interface{} {
 	return value
 }
 
+func (s *Session) ShouldGet(key string, dest interface{}) error {
+	s.RLock()
+	defer s.RUnlock()
+	raw, ok := s.Get(key).(map[string]interface{})
+	if !ok {
+		return errors.New("can't make type assertion")
+	}
+
+	jsonTmp, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(jsonTmp))
+
+	return json.Unmarshal(jsonTmp, dest)
+}
+
 func (s *Session) Set(key string, value interface{}) {
 	s.Lock()
 	defer s.Unlock()
@@ -47,6 +66,11 @@ func (s *Session) Set(key string, value interface{}) {
 		s.Store = make(map[string]interface{})
 	}
 
+	//val, err := json.Marshal(value)
+	//if err != nil {
+	//	panic(err)
+	//}
+
 	s.Store[key] = value
 }
 
@@ -54,6 +78,14 @@ func (s *Session) Delete(key string) {
 	s.Lock()
 	defer s.Unlock()
 	delete(s.Store, key)
+}
+
+func (s *Session) Clear() {
+	s.Lock()
+	defer s.Unlock()
+	for key, _ := range s.Store {
+		delete(s.Store, key)
+	}
 }
 
 func Middleware(store SessionStore) telebot.MiddlewareFunc {
